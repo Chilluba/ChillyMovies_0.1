@@ -1,23 +1,36 @@
-import { contextBridge as a, ipcRenderer as t } from "electron";
-const n = {
+import { contextBridge, ipcRenderer } from "electron";
+const api = {
   downloadManager: {
-    start: async (e) => await t.invoke("download:start", e),
-    getAll: async () => await t.invoke("download:getAll"),
-    pause: async (e) => {
-      await t.invoke("download:pause", e);
+    start: async (request) => {
+      return await ipcRenderer.invoke("download:start", request);
     },
-    resume: async (e) => {
-      await t.invoke("download:resume", e);
+    getAll: async () => {
+      return await ipcRenderer.invoke("download:getAll");
     },
-    cancel: async (e) => {
-      await t.invoke("download:cancel", e);
+    pause: async (id) => {
+      await ipcRenderer.invoke("download:pause", id);
     },
-    selectDirectory: async () => await t.invoke("download:selectDirectory")
+    resume: async (id) => {
+      await ipcRenderer.invoke("download:resume", id);
+    },
+    cancel: async (id) => {
+      await ipcRenderer.invoke("download:cancel", id);
+    },
+    selectDirectory: async () => {
+      const result = await ipcRenderer.invoke("download:selectDirectory");
+      return result;
+    }
   },
   settings: {
-    get: async () => await t.invoke("settings:get"),
-    update: async (e) => await t.invoke("settings:update", e),
-    reset: async () => await t.invoke("settings:reset")
+    get: async () => {
+      return await ipcRenderer.invoke("settings:get");
+    },
+    update: async (request) => {
+      return await ipcRenderer.invoke("settings:update", request);
+    },
+    reset: async () => {
+      return await ipcRenderer.invoke("settings:reset");
+    }
   }
 };
-a.exposeInMainWorld("electron", n);
+contextBridge.exposeInMainWorld("electron", api);

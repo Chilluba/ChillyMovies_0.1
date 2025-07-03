@@ -149,13 +149,28 @@ export const TVSeriesDetails = ({ show, onClose, onDownload }: TVSeriesDetailsPr
                         onClick={() => toggleSeason(season)}
                         className="flex w-full items-center justify-between gap-2"
                       >
-                        <div>
-                          <h4 className="text-left font-medium text-white">
-                            Season {season.season_number}
-                          </h4>
-                          <p className="text-sm text-text-secondary">
-                            {season.episode_count} Episodes
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={seasonWithEpisodes?.episodes?.every(ep => selectedEpisodes[ep.id]) || false}
+                            onChange={() => {}}
+                            ref={el => {
+                              if (el && seasonWithEpisodes?.episodes) {
+                                const someSelected = seasonWithEpisodes.episodes.some(ep => selectedEpisodes[ep.id]);
+                                const allSelected = seasonWithEpisodes.episodes.every(ep => selectedEpisodes[ep.id]);
+                                el.indeterminate = someSelected && !allSelected;
+                              }
+                            }}
+                            className="h-4 w-4 rounded border-secondary bg-primary text-accent focus:ring-accent"
+                          />
+                          <div>
+                            <h4 className="text-left font-medium text-white">
+                              Season {season.season_number}
+                            </h4>
+                            <p className="text-sm text-text-secondary">
+                              {season.episode_count} Episodes
+                            </p>
+                          </div>
                         </div>
                         {isLoading ? (
                           <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent text-white" />

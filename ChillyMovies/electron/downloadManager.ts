@@ -1,260 +1,236 @@
-import { ipcMain, dialog, app } from 'electron'
-import WebTorrent from 'webtorrent'
-import { promises as fs } from 'fs'
-import path from 'path'
-import * as youtubeDL from 'youtube-dl-exec'
-import type { Download, DownloadRequest } from '../src/types/electron'
-import type { VideoQuality } from '../src/types/api'
+import { ipcMain, dialog, app, BrowserWindow } from 'electron';
+import WebTorrent from 'webtorrent';
+import path from 'path';
+import * as youtubeDL from 'youtube-dl-exec';
+import type { Download, DownloadRequest } from '../src/types/electron';
+import store from './store';
+import type { Settings } from '../src/types/settings';
+
+// Define a type for our active downloads, which can be a torrent or a YouTube process
+type ActiveDownload =
+  | { type: 'torrent'; torrent: WebTorrent.Torrent }
+  | { type: 'youtube'; process: ReturnType<typeof youtubeDL.exec> };
 
 class DownloadManager {
-  private client: WebTorrent.Instance
-  private downloads: Map<string, Download> = new Map()
-  private defaultDownloadPath: string
-  private activeDownloads: Map<string, { cancel: () => void }> = new Map()
+  private client: WebTorrent.Instance;
+  private downloads: Map<string, Download> = new Map();
+  private activeDownloads: Map<string, ActiveDownload> = new Map();
 
   constructor() {
-    this.client = new WebTorrent()
-    this.defaultDownloadPath = app.getPath('downloads')
-    this.setupIPCHandlers()
+    this.client = new WebTorrent();
+    this.setupIPCHandlers();
 
-    // Clean up torrent client when app closes
     app.on('before-quit', () => {
-      this.client.destroy()
-    })
+      this.client.destroy();
+    });
+  }
+
+  private sendToAllWindows(channel: string, ...args: any[]) {
+    BrowserWindow.getAllWindows().forEach((win) => {
+      win.webContents.send(channel, ...args);
+    });
   }
 
   private setupIPCHandlers() {
     ipcMain.handle('download:start', async (_event, request: DownloadRequest) => {
       try {
-        const savePath = await this.getSavePath(request)
-        if (!savePath) return { success: false, error: 'Download cancelled' }
-
-        const downloadId = `${request.type}-${request.contentId}-${Date.now()}`
-        
-        this.downloads.set(downloadId, {
-          id: downloadId,
-          progress: 0,
-          speed: '0 KB/s',
-          eta: 'Unknown',
-          status: 'queued'
-        })
-
-        if (request.url?.startsWith('magnet:') || request.url?.endsWith('.torrent')) {
-          // Handle torrent download
-          this.client.add(request.url, { path: savePath }, (torrent) => {
-            const download = this.downloads.get(downloadId)
-            if (!download) return
-
-            torrent.on('download', () => {
-              download.progress = torrent.progress * 100
-              download.speed = this.formatBytes(torrent.downloadSpeed) + '/s'
-              download.eta = this.formatTime(torrent.timeRemaining)
-              this.downloads.set(downloadId, download)
-            })
-
-            torrent.on('done', () => {
-              download.progress = 100
-              download.status = 'completed'
-              download.speed = '0 KB/s'
-              download.eta = 'Completed'
-              this.downloads.set(downloadId, download)
-              
-              // Clean up the torrent
-              torrent.destroy()
-            })
-
-            torrent.on('error', (err) => {
-              download.status = 'error'
-              download.error = err instanceof Error ? err.message : String(err)
-              this.downloads.set(downloadId, download)
-            })
-          })
-        } else if (request.type === 'youtube' && request.url) {
-          this.handleYouTubeDownload(
-            downloadId,
-            request.url,
-            savePath,
-            request.quality,
-            request.audioOnly
-          )
-        } else {
-          // TODO: Implement direct download logic
-          this.simulateProgress(downloadId)
-        }
-
-        return { success: true, downloadId }
+        return await this.startDownload(request);
       } catch (err) {
-        console.error('Download error:', err)
-        return {
-          success: false,
-          error: err instanceof Error ? err.message : String(err)
-        }
+        console.error('Download error:', err);
+        const error = err instanceof Error ? err.message : String(err);
+        this.sendToAllWindows('download:error', { downloadId: request.contentId, error });
+        return { success: false, error };
       }
-    })
+    });
 
     ipcMain.handle('download:pause', (_event, downloadId: string) => {
-      const download = this.downloads.get(downloadId)
-      if (download) {
-        download.status = 'paused'
-        this.downloads.set(downloadId, download)
-      }
-    })
+      this.pauseDownload(downloadId);
+    });
 
     ipcMain.handle('download:resume', (_event, downloadId: string) => {
-      const download = this.downloads.get(downloadId)
-      if (download) {
-        download.status = 'downloading'
-        this.downloads.set(downloadId, download)
-      }
-    })
+      this.resumeDownload(downloadId);
+    });
 
     ipcMain.handle('download:cancel', async (_event, downloadId: string) => {
-      const activeDownload = this.activeDownloads.get(downloadId)
-      if (activeDownload) {
-        activeDownload.cancel()
-      }
-      this.downloads.delete(downloadId)
-      this.activeDownloads.delete(downloadId)
-    })
+      this.cancelDownload(downloadId);
+    });
 
     ipcMain.handle('download:getAll', () => {
-      return Array.from(this.downloads.values())
-    })
-  }
-
-  private async getSavePath(request: DownloadRequest): Promise<string | undefined> {
-    const { filePath } = await dialog.showSaveDialog({
-      title: 'Save Download',
-      defaultPath: `~/Downloads/${request.contentId}`,
-      buttonLabel: 'Download',
-      properties: ['createDirectory']
-    })
-    
-    return filePath
+      return Array.from(this.downloads.values());
+    });
   }
 
   private formatBytes(bytes: number): string {
-    const units = ['B', 'KB', 'MB', 'GB', 'TB']
-    let size = bytes
-    let unitIndex = 0
-
-    while (size >= 1024 && unitIndex < units.length - 1) {
-      size /= 1024
-      unitIndex++
-    }
-
-    return `${size.toFixed(1)} ${units[unitIndex]}`
+    if (bytes === 0) return '0 B/s';
+    const units = ['B/s', 'KB/s', 'MB/s', 'GB/s', 'TB/s'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${units[i]}`;
   }
 
   private formatTime(ms: number): string {
-    if (!ms || ms === Infinity) return 'Unknown'
+    if (!ms || ms === Infinity) return 'Unknown';
+    return new Date(ms).toISOString().substr(11, 8);
+  }
 
-    const seconds = Math.floor(ms / 1000)
-    const minutes = Math.floor(seconds / 60)
-    const hours = Math.floor(minutes / 60)
+  private async startDownload(request: DownloadRequest) {
+    const downloadId = String(request.contentId);
+    const settings = (store as any).get('settings') as Settings;
+    const savePath = settings.downloadPath || app.getPath('downloads');
 
-    if (hours > 0) {
-      return `${hours}h ${minutes % 60}m`
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds % 60}s`
+    const newDownload: Download = {
+      id: downloadId,
+      name: request.name || downloadId,
+      type: request.type,
+      progress: 0,
+      speed: '0 B/s',
+      eta: 'Unknown',
+      status: 'queued',
+    };
+    this.downloads.set(downloadId, newDownload);
+    this.sendToAllWindows('download:progress', newDownload);
+
+    if (request.type === 'youtube') {
+      this.startYouTubeDownload(request, newDownload, savePath);
     } else {
-      return `${seconds}s`
+      this.startTorrentDownload(request, newDownload, savePath);
     }
+
+    return { success: true, downloadId };
   }
 
-  private simulateProgress(downloadId: string) {
-    let progress = 0
-    const interval = setInterval(() => {
-      const download = this.downloads.get(downloadId)
-      if (!download || download.status === 'paused') return
+  private startYouTubeDownload(request: DownloadRequest, download: Download, savePath: string) {
+    const downloadId = String(download.id);
+    const videoUrl = request.magnet; // Using magnet field for URL
+    const filePath = path.join(savePath, `%(title)s-%(id)s.%(ext)s`);
 
-      progress += Math.random() * 10
-      if (progress >= 100) {
-        progress = 100
-        clearInterval(interval)
-        download.status = 'completed'
-      }
+    let format = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best';
+    if (request.audioOnly) {
+      format = 'bestaudio[ext=m4a]';
+    } else if (request.quality && request.quality.width && request.quality.height) {
+      format = `bestvideo[width<=${request.quality.width}][height<=${request.quality.height}][ext=mp4]+bestaudio[ext=m4a]/best[width<=${request.quality.width}][height<=${request.quality.height}][ext=mp4]/best`;
+    }
 
-      download.progress = Math.min(progress, 100)
-      download.speed = `${Math.floor(Math.random() * 10)} MB/s`
-      download.eta = `${Math.floor((100 - progress) / 10)} seconds`
+    const youtubeProcess = youtubeDL.exec(videoUrl, {
+      output: filePath,
+      format,
+      noWarnings: true,
+      noCheckCertificates: true,
+      youtubeSkipDashManifest: true,
+    });
+
+    this.activeDownloads.set(downloadId, { type: 'youtube', process: youtubeProcess });
+    download.status = 'downloading';
+    this.sendToAllWindows('download:progress', download);
+
+    youtubeProcess.stdout?.on('data', (data: Buffer) => {
+      const output = data.toString();
+      const progressMatch = output.match(/\[download\]\s+([\d.]+)% of/);
+      const speedMatch = output.match(/at\s+([~\d.NA/s]+)/);
+      const etaMatch = output.match(/ETA\s+([\d:]+)/);
+
+      if (progressMatch) download.progress = parseFloat(progressMatch[1]);
+      if (speedMatch) download.speed = speedMatch[1].replace('~','');
+      if (etaMatch) download.eta = etaMatch[1];
       
-      this.downloads.set(downloadId, download)
-    }, 1000)
+      this.sendToAllWindows('download:progress', download);
+    });
+
+    youtubeProcess.then(() => {
+      download.status = 'completed';
+      download.progress = 100;
+      this.activeDownloads.delete(downloadId);
+      this.sendToAllWindows('download:progress', download);
+    }).catch((err) => {
+      if (err.killed) {
+        download.status = 'canceled';
+      } else {
+        download.status = 'error';
+        download.error = err.message;
+      }
+      this.activeDownloads.delete(downloadId);
+      this.sendToAllWindows('download:progress', download);
+    });
   }
 
-  private async handleYouTubeDownload(
-    downloadId: string,
-    url: string,
-    savePath: string,
-    quality: VideoQuality,
-    audioOnly: boolean = false
-  ) {
-    const download = this.downloads.get(downloadId)
-    if (!download) return
+  private startTorrentDownload(request: DownloadRequest, download: Download, savePath: string) {
+    const downloadId = String(download.id);
 
-    try {
-      download.status = 'downloading'
-      this.downloads.set(downloadId, download)
-
-      const options: any = {
-        output: savePath,
-        format: audioOnly ? 'bestaudio' : `bestvideo[height<=${quality.height}]+bestaudio/best[height<=${quality.height}]`
-      }
-
-      if (audioOnly) {
-        options.extractAudio = true
-        options.audioFormat = 'mp3'
-      }
-
-      const controller = new AbortController()
-      this.activeDownloads.set(downloadId, { cancel: () => controller.abort() })
-
-      const ytProcess = await youtubeDL.default(url, {
-        ...options,
-        signal: controller.signal
-      })
-
-      // Update progress based on file size
-      const updateProgress = async () => {
-        try {
-          const stats = await fs.stat(savePath)
-          const fileSize = stats.size
-          
-          download.progress = Math.min((fileSize / 1024 / 1024) * 5, 100) // Estimate progress
-          download.speed = '...'
-          download.eta = 'Calculating...'
-          this.downloads.set(downloadId, { ...download })
-          
-          if (download.status === 'downloading' && download.progress < 100) {
-            setTimeout(updateProgress, 1000)
-          }
-        } catch (err) {
-          // File might not exist yet
-        }
-      }
-
-      updateProgress()
-
-      await ytProcess
-
-      download.progress = 100
-      download.status = 'completed'
-      download.speed = '0 B/s'
-      download.eta = 'Completed'
-      this.downloads.set(downloadId, download)
-
-    } catch (err) {
-      console.error('YouTube download error:', err)
-      download.status = 'error'
-      download.error = err instanceof Error ? err.message : String(err)
-      this.downloads.set(downloadId, download)
-    } finally {
-      this.activeDownloads.delete(downloadId)
+    if (!request.magnet) {
+      download.status = 'error';
+      download.error = 'No magnet link provided.';
+      this.sendToAllWindows('download:progress', download);
+      return;
     }
+
+    this.client.add(request.magnet, { path: savePath }, (torrent) => {
+      this.activeDownloads.set(downloadId, { type: 'torrent', torrent });
+      download.name = torrent.name; // Update name from torrent metadata
+      download.status = 'downloading';
+      this.sendToAllWindows('download:progress', download);
+
+      torrent.on('download', () => {
+        download.progress = Math.round(torrent.progress * 100);
+        download.speed = this.formatBytes(torrent.downloadSpeed);
+        download.eta = this.formatTime(torrent.timeRemaining);
+        this.sendToAllWindows('download:progress', download);
+      });
+
+      torrent.on('done', () => {
+        download.status = 'completed';
+        download.progress = 100;
+        this.activeDownloads.delete(downloadId);
+        this.sendToAllWindows('download:progress', download);
+      });
+
+      torrent.on('error', (err) => {
+        download.status = 'error';
+        download.error = typeof err === 'string' ? err : err.message;
+        this.activeDownloads.delete(downloadId);
+        this.sendToAllWindows('download:progress', download);
+      });
+    });
+  }
+
+  private pauseDownload(downloadId: string) {
+    const download = this.downloads.get(downloadId);
+    const activeDownload = this.activeDownloads.get(downloadId);
+
+    if (download && activeDownload?.type === 'youtube') {
+      activeDownload.process.kill('SIGSTOP');
+      download.status = 'paused';
+      this.sendToAllWindows('download:progress', download);
+    } else {
+      console.warn(`Pausing is not supported for this download type.`);
+    }
+  }
+
+  private resumeDownload(downloadId: string) {
+    const download = this.downloads.get(downloadId);
+    const activeDownload = this.activeDownloads.get(downloadId);
+
+    if (download && activeDownload?.type === 'youtube') {
+      activeDownload.process.kill('SIGCONT');
+      download.status = 'downloading';
+      this.sendToAllWindows('download:progress', download);
+    } else {
+      console.warn(`Resuming is not supported for this download type.`);
+    }
+  }
+
+  private cancelDownload(downloadId: string) {
+    const activeDownload = this.activeDownloads.get(downloadId);
+    if (activeDownload) {
+      if (activeDownload.type === 'torrent') {
+        activeDownload.torrent.destroy();
+      } else {
+        activeDownload.process.kill();
+      }
+    }
+    this.downloads.delete(downloadId);
+    this.activeDownloads.delete(downloadId);
+    this.sendToAllWindows('download:cancel', downloadId);
   }
 }
 
 export default DownloadManager;
-
 module.exports = { DownloadManager };

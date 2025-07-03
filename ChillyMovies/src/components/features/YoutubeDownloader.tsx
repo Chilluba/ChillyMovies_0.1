@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'react-hot-toast';
 import { Input } from '../ui/Input'
 import { Button } from '../ui/Button'
 import type { VideoQuality } from '../../types/api'
@@ -33,16 +34,19 @@ export const YoutubeDownloader = () => {
         contentId: url,
         quality: selectedQuality,
         type: 'youtube',
-        url: url
-      })
+        magnet: url,
+        audioOnly: audioOnly,
+      });
 
       if (!result.success) {
         throw new Error(result.error)
       }
 
       setUrl('')
+      toast.success('Download started successfully!');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start download')
+      toast.error('Failed to start download.');
     } finally {
       setIsLoading(false)
     }

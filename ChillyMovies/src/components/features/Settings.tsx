@@ -26,12 +26,27 @@ const QUALITY_OPTIONS = [
 
 export const Settings = () => {
   const [settings, setSettings] = useState<SettingsValues>({
-    downloadPath: localStorage.getItem('downloadPath') || '',
-    language: (localStorage.getItem('language') as SettingsValues['language']) || 'en',
-    maxConcurrentDownloads: Number(localStorage.getItem('maxConcurrentDownloads')) || 3,
-    autoStartDownloads: localStorage.getItem('autoStartDownloads') === 'true',
-    defaultQuality: (localStorage.getItem('defaultQuality') as SettingsValues['defaultQuality']) || '720p'
+    downloadPath: '',
+    language: 'en',
+    maxConcurrentDownloads: 3,
+    autoStartDownloads: false,
+    defaultQuality: '720p'
   })
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await window.electron.settings.get()
+        if (response.success && response.settings) {
+          setSettings(response.settings as SettingsValues)
+        }
+      } catch (err) {
+        console.error('Failed to load settings:', err)
+        setError('Failed to load settings')
+      }
+    }
+    loadSettings()
+  }, [])
 
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string>()
@@ -63,12 +78,13 @@ export const Settings = () => {
         throw new Error('Max concurrent downloads must be between 1 and 10')
       }
 
-      // Save to localStorage
-      Object.entries(settings).forEach(([key, value]) => {
-        localStorage.setItem(key, String(value))
-      })
-
-      // TODO: Save to electron-store when implemented
+      // Save to electron-store
+      for (const [key, value] of Object.entries(settings)) {
+        const updateResult = await window.electron.settings.update({ key: key as keyof SettingsValues, value });
+        if (!updateResult.success) {
+          throw new Error(updateResult.error || 'Failed to update setting');
+        }
+      }
       setSuccess(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save settings')
@@ -77,19 +93,23 @@ export const Settings = () => {
     }
   }
 
-  const handleReset = () => {
-    const defaultSettings: SettingsValues = {
-      downloadPath: '',
-      language: 'en',
-      maxConcurrentDownloads: 3,
-      autoStartDownloads: false,
-      defaultQuality: '720p'
+  const handleReset = async () => {
+    setIsSaving(true)
+    setError(undefined)
+    setSuccess(false)
+    try {
+      const response = await window.electron.settings.reset()
+      if (response.success && response.settings) {
+        setSettings(response.settings as SettingsValues)
+        setSuccess(true)
+      } else {
+        throw new Error(response.error || 'Failed to reset settings')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reset settings')
+    } finally {
+      setIsSaving(false)
     }
-
-    setSettings(defaultSettings)
-    Object.entries(defaultSettings).forEach(([key, value]) => {
-      localStorage.setItem(key, String(value))
-    })
   }
 
   return (

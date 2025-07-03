@@ -1,61 +1,88 @@
-const { app: n, BrowserWindow: d, ipcMain: o, dialog: h, nativeTheme: g } = require("electron"), a = require("path"), { store: r } = require("./store"), { DownloadManager: w } = require("./downloadManager");
-new w();
-const c = /* @__PURE__ */ new Set();
-function l() {
-  const e = new d({
+const { app, BrowserWindow, ipcMain, dialog, nativeTheme } = require("electron");
+const path = require("path");
+const { store } = require("./store");
+const { DownloadManager } = require("./downloadManager");
+new DownloadManager();
+const windows = /* @__PURE__ */ new Set();
+function createWindow() {
+  const win = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
-      nodeIntegration: !1,
-      contextIsolation: !0,
-      preload: a.join(__dirname, "preload.js")
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, "preload.js")
     },
-    backgroundColor: g.shouldUseDarkColors ? "#121416" : "#ffffff"
+    backgroundColor: nativeTheme.shouldUseDarkColors ? "#121416" : "#ffffff"
   });
-  c.add(e), e.on("closed", () => c.delete(e)), process.env.NODE_ENV === "development" ? (e.loadURL("http://localhost:5173"), e.webContents.openDevTools()) : e.loadFile(a.join(__dirname, "../dist/index.html"));
+  windows.add(win);
+  win.on("closed", () => windows.delete(win));
+  {
+    win.loadURL("http://localhost:5173");
+    win.webContents.openDevTools();
+  }
 }
-n.whenReady().then(() => {
-  l(), n.on("activate", () => {
-    d.getAllWindows().length === 0 && l();
+app.whenReady().then(() => {
+  createWindow();
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
   });
 });
-n.on("window-all-closed", () => {
-  process.platform !== "darwin" && n.quit();
-});
-o.handle("settings:get", async () => {
-  try {
-    return { success: !0, settings: r.get("settings") };
-  } catch (e) {
-    return console.error("Failed to get settings:", e), { success: !1, error: e instanceof Error ? e.message : String(e) };
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
+    app.quit();
   }
 });
-o.handle("settings:update", async (e, { key: t, value: u }) => {
+ipcMain.handle("settings:get", async () => {
   try {
-    const i = { ...r.get("settings"), [t]: u };
-    if (r.set("settings", i), t === "theme")
-      for (const f of c)
-        f.setBackgroundColor(g.shouldUseDarkColors ? "#121416" : "#ffffff");
-    return { success: !0, settings: i };
-  } catch (s) {
-    return console.error("Failed to update settings:", s), { success: !1, error: s instanceof Error ? s.message : String(s) };
+    const settings = store.get("settings");
+    return { success: true, settings };
+  } catch (err) {
+    console.error("Failed to get settings:", err);
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
 });
-o.handle("settings:reset", async () => {
+ipcMain.handle("settings:update", async (_event, { key, value }) => {
   try {
-    return r.clear(), { success: !0, settings: r.get("settings") };
-  } catch (e) {
-    return console.error("Failed to reset settings:", e), { success: !1, error: e instanceof Error ? e.message : String(e) };
+    const settings = store.get("settings");
+    const updatedSettings = { ...settings, [key]: value };
+    store.set("settings", updatedSettings);
+    if (key === "theme") {
+      for (const win of windows) {
+        win.setBackgroundColor(nativeTheme.shouldUseDarkColors ? "#121416" : "#ffffff");
+      }
+    }
+    return { success: true, settings: updatedSettings };
+  } catch (err) {
+    console.error("Failed to update settings:", err);
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
 });
-o.handle("download:selectDirectory", async () => {
+ipcMain.handle("settings:reset", async () => {
   try {
-    const { canceled: e, filePaths: t } = await h.showOpenDialog({
+    store.clear();
+    const settings = store.get("settings");
+    return { success: true, settings };
+  } catch (err) {
+    console.error("Failed to reset settings:", err);
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+});
+ipcMain.handle("download:selectDirectory", async () => {
+  try {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
       properties: ["openDirectory", "createDirectory"],
       title: "Select Download Location",
       buttonLabel: "Select Folder"
     });
-    return e || t.length === 0 ? { success: !1 } : { success: !0, path: t[0] };
-  } catch (e) {
-    return console.error("Failed to select directory:", e), { success: !1, error: e instanceof Error ? e.message : String(e) };
+    if (canceled || filePaths.length === 0) {
+      return { success: false };
+    }
+    return { success: true, path: filePaths[0] };
+  } catch (err) {
+    console.error("Failed to select directory:", err);
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
 });

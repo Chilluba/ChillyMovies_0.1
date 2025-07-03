@@ -1,7 +1,13 @@
-import Store from 'electron-store'
-import type { Settings } from '../src/types/settings'
+import Store, { Schema } from 'electron-store';
+import type { Settings } from '../src/types/settings';
 
-const schema = {
+// Define a type for your store's data
+export interface StoreType {
+  settings: Settings;
+}
+
+// Define the schema for your settings
+const schema: Schema<StoreType> = {
   settings: {
     type: 'object',
     properties: {
@@ -10,25 +16,29 @@ const schema = {
       maxConcurrentDownloads: { type: 'number', minimum: 1, maximum: 10 },
       autoStartDownloads: { type: 'boolean' },
       defaultQuality: { type: 'string', enum: ['480p', '720p', '1080p', '4k'] },
-      theme: { type: 'string', enum: ['dark', 'light', 'system'] }
+      theme: { type: 'string', enum: ['dark', 'light', 'system'] },
     },
-    required: ['downloadPath', 'language', 'maxConcurrentDownloads', 'autoStartDownloads', 'defaultQuality', 'theme']
-  }
-}
+    required: ['downloadPath', 'language', 'maxConcurrentDownloads', 'autoStartDownloads', 'defaultQuality', 'theme'],
+  },
+};
 
-const defaults: { settings: Settings } = {
+// Define the default values for your settings
+const defaults: StoreType = {
   settings: {
-    downloadPath: '',
+    downloadPath: '', // Default to an empty string, let the app handle it
     language: 'en',
     maxConcurrentDownloads: 3,
     autoStartDownloads: false,
     defaultQuality: '720p',
-    theme: 'system'
-  }
-}
+    theme: 'system',
+  },
+};
 
-export const store = new Store({
+// Initialize and export the typed store
+const store = new Store<StoreType>({
   schema,
   defaults,
-  watch: true // Watch for changes in the config file
-})
+  watch: true, // Watch for changes in the config file
+});
+
+export default store;

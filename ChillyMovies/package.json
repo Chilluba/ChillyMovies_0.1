@@ -1,19 +1,28 @@
 {
-  "name": "@chillymovies/app",
+  "name": "chillymovies-app",
   "productName": "ChillyMovies",
   "version": "0.1.0",
   "description": "A powerful desktop application for downloading movies, TV shows, and YouTube videos",
-  "author": "ChillyMovies Team",
+  "author": {
+    "name": "ChillyMovies Team",
+    "email": "team@chillymovies.com"
+  },
+  "homepage": "https://chillymovies.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chillymovies/chillymovies-app.git"
+  },
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "start": "electron .",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "electron:dev": "tsc && vite build && NODE_ENV=development concurrently \"vite\" \"wait-on tcp:5173 && electron .\"",
-    "electron:build": "tsc && vite build && electron-builder",
+    "electron:dev": "vite",
+    "build:electron": "tsc -p electron/tsconfig.json",
+    "electron:build": "npm run build && npm run build:electron && electron-builder",
     "test": "jest"
   },
   "dependencies": {
@@ -23,7 +32,9 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "webtorrent": "^2.1.27",
-    "youtube-dl-exec": "^3.0.22"
+    "axios": "^1.7.2",
+    "youtube-dl-exec": "^3.0.22",
+    "react-hot-toast": "^2.4.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
@@ -33,7 +44,6 @@
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.5.1",
     "autoprefixer": "^10.4.16",
-    "concurrently": "^9.1.2",
     "electron": "^36.4.0",
     "electron-builder": "^26.0.12",
     "eslint": "^9.25.0",
@@ -44,10 +54,7 @@
     "tailwindcss": "^3.3.3",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",
-    "vite": "^6.3.5",
-    "vite-plugin-electron": "^0.29.0",
-    "vite-plugin-electron-renderer": "^0.14.6",
-    "wait-on": "^8.0.3"
+    "vite": "^6.3.5"
   },
   "build": {
     "appId": "com.chillymovies.app",
@@ -60,15 +67,18 @@
       "dist-electron/**/*"
     ],
     "win": {
-      "target": ["nsis"],
+      "target": "nsis",
       "icon": "public/icon.ico"
     },
     "mac": {
-      "target": ["dmg"],
+      "target": "dmg",
       "icon": "public/icon.icns"
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "category": "Video",
       "icon": "public/icon.png"
     },
@@ -79,3 +89,4 @@
   },
   "private": true
 }
+

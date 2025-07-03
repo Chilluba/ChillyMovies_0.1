@@ -1,45 +1,39 @@
-import { contextBridge, ipcRenderer } from 'electron'
-import type { ElectronAPI } from '../src/types/electron'
+import { contextBridge, ipcRenderer } from 'electron';
+import type { ElectronAPI } from '../src/types/electron';
 
 declare global {
   interface Window {
-    electron: ElectronAPI
+    electron: ElectronAPI;
   }
 }
 
 const api: ElectronAPI = {
   downloadManager: {
-    start: async (request) => {
-      return await ipcRenderer.invoke('download:start', request)
-    },
-    getAll: async () => {
-      return await ipcRenderer.invoke('download:getAll')
-    },
-    pause: async (id) => {
-      await ipcRenderer.invoke('download:pause', id)
-    },
-    resume: async (id) => {
-      await ipcRenderer.invoke('download:resume', id)
-    },
-    cancel: async (id) => {
-      await ipcRenderer.invoke('download:cancel', id)
-    },
-    selectDirectory: async () => {
-      const result = await ipcRenderer.invoke('download:selectDirectory')
-      return result
-    }
+    start: (request) => ipcRenderer.invoke('download:start', request),
+    getAll: () => ipcRenderer.invoke('download:getAll'),
+    pause: (id) => ipcRenderer.invoke('download:pause', id),
+    resume: (id) => ipcRenderer.invoke('download:resume', id),
+    cancel: (id) => ipcRenderer.invoke('download:cancel', id),
+    selectDirectory: () => ipcRenderer.invoke('download:selectDirectory'),
   },
   settings: {
-    get: async () => {
-      return await ipcRenderer.invoke('settings:get')
-    },
-    update: async (request) => {
-      return await ipcRenderer.invoke('settings:update', request)
-    },
-    reset: async () => {
-      return await ipcRenderer.invoke('settings:reset')
+    get: () => ipcRenderer.invoke('settings:get'),
+    update: (request) => ipcRenderer.invoke('settings:update', request),
+    reset: () => ipcRenderer.invoke('settings:reset'),
+  },
+  receive: (channel, func) => {
+    const validChannels = ['download:progress', 'download:cancel', 'download:error'];
+    if (validChannels.includes(channel)) {
+      // Deliberately strip event as it includes `sender`
+      const subscription = (event: Electron.IpcRendererEvent, ...args: any[]) => func(...args);
+      ipcRenderer.on(channel, subscription);
+      
+      // Return a cleanup function
+      return () => {
+        ipcRenderer.removeListener(channel, subscription);
+      };
     }
-  }
-}
+  },
+};
 
-contextBridge.exposeInMainWorld('electron', api)
+contextBridge.exposeInMainWorld('electron', api);

@@ -1,0 +1,4 @@
+owner: chillymovies
+repo: chillymovies-app
+provider: github
+updaterCacheDirName: chillymovies-app-updater

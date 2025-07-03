@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Toaster, toast } from 'react-hot-toast';
 import { Layout } from './components/layout/Layout'
 import { SearchBar } from './components/features/SearchBar'
 import { SearchResults } from './components/features/SearchResults'
@@ -62,40 +63,45 @@ function App() {
       const result = await window.electron.downloadManager.start({
         contentId: selectedMovie.id,
         quality,
-        type: 'movie'
-      })
+        type: 'movie',
+        magnet: `magnet:?xt=urn:btih:${selectedMovie.id}&dn=${encodeURIComponent(selectedMovie.title)}` // Placeholder magnet link
+      });
 
       if (!result.success) {
         throw new Error(result.error)
       }
 
       setSelectedMovie(undefined)
+      toast.success('Download started successfully!');
     } catch (err) {
       console.error('Download error:', err)
+      toast.error('Failed to start download.');
     }
   }
 
   const handleTVShowDownload = async (episodes: TVShowEpisode[], quality: VideoQuality) => {
-    if (!selectedTVShow || episodes.length === 0) return
+    if (!selectedTVShow || episodes.length === 0) return;
 
     try {
-      for (const episode of episodes) {
-        const result = await window.electron.downloadManager.start({
-          contentId: `${selectedTVShow.id}-s${episode.season_number}e${episode.episode_number}`,
-          quality,
-          type: 'tv'
-        })
+      const result = await window.electron.downloadManager.start({
+        contentId: selectedTVShow.id.toString(),
+        quality,
+        type: 'tv',
+        episodes,
+        magnet: `magnet:?xt=urn:btih:${selectedTVShow.id}&dn=${encodeURIComponent(selectedTVShow.name)}` // Placeholder magnet link
+      });
 
-        if (!result.success) {
-          throw new Error(result.error)
-        }
+      if (!result.success) {
+        throw new Error(result.error);
       }
 
-      setSelectedTVShow(undefined)
+      setSelectedTVShow(undefined);
+      toast.success('Download started successfully!');
     } catch (err) {
-      console.error('Download error:', err)
+      console.error('Download error:', err);
+      toast.error('Failed to start download.');
     }
-  }
+  };
 
   const handleShowDetails = async (tvShow: TVShowResult) => {
     try {
@@ -108,6 +114,7 @@ function App() {
 
   return (
     <Layout>
+      <Toaster />
       <h2 className="text-white tracking-light text-[28px] font-bold leading-tight px-4 text-center pb-3 pt-5">
         Download your favorite content
       </h2>
