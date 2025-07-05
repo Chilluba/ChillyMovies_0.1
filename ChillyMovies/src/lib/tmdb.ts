@@ -1,9 +1,9 @@
 import axios from 'axios'
 import type { MovieSearchResponse, TVShowResponse, TVShowSearchResponse, TMDBConfig, TVShowSeason } from '../types/api'
 
-const TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY
-if (!TMDB_API_KEY) {
-  throw new Error('TMDB API key is not configured. Please check your .env file.')
+const TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY || 'demo_key'
+if (!import.meta.env.VITE_TMDB_API_KEY) {
+  console.warn('TMDB API key is not configured. Please add VITE_TMDB_API_KEY to your .env file.')
 }
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3'

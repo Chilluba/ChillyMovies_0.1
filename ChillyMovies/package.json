@@ -15,7 +15,7 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
-    "start": "electron . --no-sandbox",
+    "start": "electron . --no-sandbox --disable-gpu --disable-dev-shm-usage",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
