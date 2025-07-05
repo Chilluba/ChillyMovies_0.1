@@ -12,11 +12,10 @@
     "type": "git",
     "url": "https://github.com/chillymovies/chillymovies-app.git"
   },
-  "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
-    "start": "electron .",
+    "start": "electron . --no-sandbox",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -28,20 +27,21 @@
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.2.7",
     "@types/webtorrent": "^0.110.0",
-    "electron-store": "^10.0.1",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "webtorrent": "^2.1.27",
     "axios": "^1.7.2",
-    "youtube-dl-exec": "^3.0.22",
-    "react-hot-toast": "^2.4.1"
+    "electron-store": "^10.0.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-hot-toast": "^2.4.1",
+    "webtorrent": "^2.1.27",
+    "youtube-dl-exec": "^3.0.22"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
     "@rollup/plugin-commonjs": "^28.0.3",
+    "@types/electron": "^1.4.38",
     "@types/node": "^22.15.30",
-    "@types/react": "^19.1.6",
-    "@types/react-dom": "^19.1.6",
+    "@types/react": "18.2.0",
+    "@types/react-dom": "18.2.0",
     "@vitejs/plugin-react": "^4.5.1",
     "autoprefixer": "^10.4.16",
     "electron": "^36.4.0",
@@ -89,4 +89,3 @@
   },
   "private": true
 }
-

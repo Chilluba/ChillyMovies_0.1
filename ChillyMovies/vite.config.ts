@@ -14,6 +14,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
+      external: ['electron'],
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom'],
@@ -21,5 +22,8 @@ export default defineConfig({
         },
       },
     },
+  },
+  optimizeDeps: {
+    exclude: ['electron'],
   },
 })

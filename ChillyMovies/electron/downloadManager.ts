@@ -1,9 +1,9 @@
-import { ipcMain, dialog, app, BrowserWindow } from 'electron';
-import WebTorrent from 'webtorrent';
-import path from 'path';
-import * as youtubeDL from 'youtube-dl-exec';
+const { ipcMain, dialog, app, BrowserWindow } = require('electron');
+const WebTorrent = require('webtorrent');
+const path = require('path');
+const youtubeDL = require('youtube-dl-exec');
 import type { Download, DownloadRequest } from '../src/types/electron';
-import store from './store';
+const store = require('./store');
 import type { Settings } from '../src/types/settings';
 
 // Define a type for our active downloads, which can be a torrent or a YouTube process
@@ -232,5 +232,4 @@ class DownloadManager {
   }
 }
 
-export default DownloadManager;
-module.exports = { DownloadManager };
+module.exports = DownloadManager;

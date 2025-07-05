@@ -1,5 +1,6 @@
-import Store, { Schema } from 'electron-store';
+const Store = require('electron-store');
 import type { Settings } from '../src/types/settings';
+import type { Schema } from 'electron-store';
 
 // Define a type for your store's data
 export interface StoreType {
@@ -41,4 +42,4 @@ const store = new Store<StoreType>({
   watch: true, // Watch for changes in the config file
 });
 
-export default store;
+module.exports = store;

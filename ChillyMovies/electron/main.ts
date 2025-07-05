@@ -1,7 +1,7 @@
-import { app, BrowserWindow, ipcMain, dialog, nativeTheme } from 'electron';
-import path from 'path';
-import store from './store';
-import DownloadManager from './downloadManager';
+const { app, BrowserWindow, ipcMain, dialog, nativeTheme } = require('electron');
+const path = require('path');
+const store = require('./store');
+const DownloadManager = require('./downloadManager');
 
 // Import types
 import type { Settings, UpdateSettingsRequest } from '../src/types/settings';
