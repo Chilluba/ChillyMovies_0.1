@@ -18,7 +18,8 @@ export const SearchResults = ({ results, isLoading, error, onSelectMovie }: Sear
     )
   }
 
-  if (error) {      return (
+  if (error) {
+    return (
       <div className="flex min-h-[200px] flex-col items-center justify-center gap-4">
         <p className="text-text-secondary">{error}</p>
       </div>

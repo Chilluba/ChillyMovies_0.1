@@ -9,6 +9,9 @@ import type { Settings, UpdateSettingsRequest } from '../src/types/settings';
 // Initialize download manager
 const downloadManager = new DownloadManager();
 
+// Ensure download manager is properly initialized
+console.log('Download manager initialized:', downloadManager);
+
 // Track active windows
 const windows = new Set<BrowserWindow>();
 

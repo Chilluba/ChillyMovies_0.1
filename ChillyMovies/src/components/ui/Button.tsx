@@ -18,10 +18,10 @@ export const Button = ({
   const baseStyles = 'inline-flex items-center justify-center rounded-xl font-medium transition-colors focus:outline-none'
   
   const variantStyles = {
-    primary: 'bg-primary text-white hover:bg-opacity-90',
-    secondary: 'bg-secondary text-white hover:bg-opacity-90',
-    ghost: 'bg-transparent text-white hover:bg-primary',
-    danger: 'bg-red-600 text-white hover:bg-red-700'
+    primary: 'bg-primary text-text-primary hover:bg-opacity-90',
+    secondary: 'bg-secondary text-text-primary hover:bg-opacity-90',
+    ghost: 'bg-transparent text-text-primary hover:bg-primary',
+    danger: 'bg-red-600 text-text-primary hover:bg-red-700'
   }
   
   const sizeStyles = {

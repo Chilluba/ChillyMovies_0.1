@@ -27,10 +27,10 @@ body {
   }
   
   .btn-primary {
-    @apply bg-primary text-white hover:bg-opacity-90;
+    @apply bg-primary text-text-primary hover:bg-opacity-90;
   }
   
   .input {
-    @apply rounded-xl border border-secondary bg-primary px-4 py-2 text-white placeholder-text-secondary focus:border-accent focus:outline-none;
+    @apply rounded-xl border border-secondary bg-primary px-4 py-2 text-text-primary placeholder-text-secondary focus:border-accent focus:outline-none;
   }
 }

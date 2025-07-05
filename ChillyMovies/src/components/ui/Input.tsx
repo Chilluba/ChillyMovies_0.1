@@ -13,14 +13,14 @@ export const Input = ({
   className = '',
   ...props
 }: InputProps) => {
-  const baseStyles = 'flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-secondary bg-primary focus:border-accent h-12 placeholder:text-text-secondary px-4'
+  const baseStyles = 'flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-text-primary focus:outline-0 focus:ring-0 border border-secondary bg-primary focus:border-accent h-12 placeholder:text-text-secondary px-4'
   
   const combinedClassName = `${baseStyles} ${error ? 'border-red-500' : ''} ${className}`
   
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <label className="text-sm font-medium text-white">
+        <label className="text-sm font-medium text-text-primary">
           {label}
         </label>
       )}
