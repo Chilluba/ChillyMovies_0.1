@@ -11,10 +11,8 @@ export default {
         primary: '#2c3135',
         secondary: '#40484f',
         accent: '#dce8f3',
-        text: {
-          primary: '#ffffff',
-          secondary: '#a2abb3'
-        }
+        'text-primary': '#ffffff',
+        'text-secondary': '#a2abb3'
       }
     },
   },

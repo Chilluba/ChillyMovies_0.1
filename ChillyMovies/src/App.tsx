@@ -115,17 +115,17 @@ function App() {
   return (
     <Layout>
       <Toaster />
-      <h2 className="text-white tracking-light text-[28px] font-bold leading-tight px-4 text-center pb-3 pt-5">
+      <h2 className="text-text-primary tracking-light text-[28px] font-bold leading-tight px-4 text-center pb-3 pt-5">
         Download your favorite content
       </h2>
-      <h3 className="text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">
+      <h3 className="text-text-primary text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">
         {contentType === 'youtube' ? 'YouTube Video Download' : 'Search & Select'}
       </h3>
       <div className="flex gap-3 p-3 flex-wrap pr-4">
         <button
           onClick={() => setContentType('movie')}
           className={`flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full px-4 ${
-            contentType === 'movie' ? 'bg-accent text-white' : 'bg-primary text-text-secondary'
+            contentType === 'movie' ? 'bg-accent text-text-primary' : 'bg-primary text-text-secondary'
           }`}
         >
           Movies
@@ -133,7 +133,7 @@ function App() {
         <button
           onClick={() => setContentType('tv')}
           className={`flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full px-4 ${
-            contentType === 'tv' ? 'bg-accent text-white' : 'bg-primary text-text-secondary'
+            contentType === 'tv' ? 'bg-accent text-text-primary' : 'bg-primary text-text-secondary'
           }`}
         >
           TV Series
@@ -141,7 +141,7 @@ function App() {
         <button
           onClick={() => setContentType('youtube')}
           className={`flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full px-4 ${
-            contentType === 'youtube' ? 'bg-accent text-white' : 'bg-primary text-text-secondary'
+            contentType === 'youtube' ? 'bg-accent text-text-primary' : 'bg-primary text-text-secondary'
           }`}
         >
           YouTube

@@ -55,7 +55,7 @@ export const YoutubeDownloader = () => {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <h3 className="text-lg font-bold text-white">YouTube Downloader</h3>
+        <h3 className="text-lg font-bold text-text-primary">YouTube Downloader</h3>
         <p className="text-text-secondary">Download videos from YouTube by pasting the URL</p>
       </div>
 
@@ -73,14 +73,14 @@ export const YoutubeDownloader = () => {
 
         <div className="flex flex-col gap-3">
           <div>
-            <label className="text-sm font-medium text-white">Format &amp; Quality</label>
+            <label className="text-sm font-medium text-text-primary">Format &amp; Quality</label>
             <div className="mt-2 flex flex-wrap gap-2">
               <button
                 onClick={() => setAudioOnly(false)}
                 className={`rounded-xl border px-4 py-2 text-sm transition-colors ${
                   !audioOnly
-                    ? 'border-accent text-white'
-                    : 'border-secondary text-text-secondary hover:border-white hover:text-white'
+                    ? 'border-accent text-text-primary'
+                    : 'border-secondary text-text-secondary hover:border-accent hover:text-text-primary'
                 }`}
               >
                 Video
@@ -89,8 +89,8 @@ export const YoutubeDownloader = () => {
                 onClick={() => setAudioOnly(true)}
                 className={`rounded-xl border px-4 py-2 text-sm transition-colors ${
                   audioOnly
-                    ? 'border-accent text-white'
-                    : 'border-secondary text-text-secondary hover:border-white hover:text-white'
+                    ? 'border-accent text-text-primary'
+                    : 'border-secondary text-text-secondary hover:border-accent hover:text-text-primary'
                 }`}
               >
                 Audio Only
@@ -107,8 +107,8 @@ export const YoutubeDownloader = () => {
                     onClick={() => setSelectedQuality(quality)}
                     className={`rounded-xl border px-4 py-2 text-sm transition-colors ${
                       selectedQuality.id === quality.id
-                        ? 'border-accent text-white'
-                        : 'border-secondary text-text-secondary hover:border-white hover:text-white'
+                        ? 'border-accent text-text-primary'
+                        : 'border-secondary text-text-secondary hover:border-accent hover:text-text-primary'
                     }`}
                   >
                     {quality.label}
